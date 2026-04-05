@@ -301,7 +301,6 @@ class ConnectStore extends ChangeNotifier {
         createdAt: now.subtract(const Duration(minutes: 5)),
         isEncrypted: true,
         readBy: const ['user-ava'],
-        isPinned: false,
       ),
       ConnectMessage(
         id: 'msg-3',
@@ -313,7 +312,6 @@ class ConnectStore extends ChangeNotifier {
         createdAt: now.subtract(const Duration(minutes: 11)),
         isEncrypted: false,
         readBy: const ['user-milo'],
-        isPinned: false,
       ),
     ]);
 
