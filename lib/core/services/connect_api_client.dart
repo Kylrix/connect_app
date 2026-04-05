@@ -31,9 +31,9 @@ class ConnectApiClient {
         'Authorization': 'Bearer $jwt',
       })
       ..body = jsonEncode({
-        if (rowId != null) 'rowId': rowId,
-        if (databaseId != null) 'databaseId': databaseId,
-        if (tableId != null) 'tableId': tableId,
+        ...?(rowId != null ? {'rowId': rowId} : null),
+        ...?(databaseId != null ? {'databaseId': databaseId} : null),
+        ...?(tableId != null ? {'tableId': tableId} : null),
         ...payload,
       });
     final streamed = await request.send();
@@ -103,8 +103,8 @@ class ConnectApiClient {
         'action': 'pin_ghost_note',
         'userId': userId,
         'noteIds': noteIds,
-        if (wrappedKey != null) 'wrappedKey': wrappedKey,
-        if (metadata.isNotEmpty) 'metadata': metadata,
+        ...?(wrappedKey != null ? {'wrappedKey': wrappedKey} : null),
+        ...?(metadata.isNotEmpty ? {'metadata': metadata} : null),
       },
     );
   }
