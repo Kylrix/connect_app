@@ -13,9 +13,4 @@ class ConnectConfig {
     'ACCOUNTS_DOMAIN',
     defaultValue: 'https://accounts.kylrix.space',
   );
-
-  static const claimGhostNotesFunction = String.fromEnvironment(
-    'CLAIM_GHOST_NOTES_FUNCTION',
-    defaultValue: 'claim-ghost-notes',
-  );
 }

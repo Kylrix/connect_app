@@ -663,7 +663,7 @@ class ConnectStore extends ChangeNotifier {
     required String databaseId,
     required String tableId,
   }) async {
-    await api.updatePermissions(
+    await api.grantPermissions(
       rowId: rowId,
       permission: permission,
       targetUserIds: targetUserIds,
@@ -672,8 +672,35 @@ class ConnectStore extends ChangeNotifier {
     );
   }
 
+  Future<void> revokeShare({
+    required String rowId,
+    required List<String> targetUserIds,
+    required String databaseId,
+    required String tableId,
+  }) async {
+    await api.revokePermissions(
+      rowId: rowId,
+      targetUserIds: targetUserIds,
+      databaseId: databaseId,
+      tableId: tableId,
+    );
+  }
+
   Future<void> reclaimGhostNotes() async {
-    await api.reclaimGhostNotes(_session.userId);
+    final noteIds = _targets
+        .where((target) => target.type == 'note')
+        .map((target) => target.id)
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+
+    await api.reclaimGhostNotes(
+      userId: _session.userId,
+      noteIds: noteIds,
+      metadata: {
+        'source': 'connect-flutter',
+        'noteCount': noteIds.length,
+      },
+    );
   }
 
   ConnectTab _tabFromString(String? value) {
