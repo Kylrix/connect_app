@@ -1,0 +1,17 @@
+display_name: Kylrix Connect
+package_name: kylrix-connect
+maintainer:
+  name: Kylrix
+  email: hello@kylrix.space
+priority: optional
+section: x11
+installed_size: 6604
+essential: false
+icon: macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png
+keywords:
+  - Kylrix
+  - Connect
+generic_name: Connect
+categories:
+  - Network
+startup_notify: true

@@ -1,0 +1,9 @@
+display_name: Kylrix Connect
+generic_name: Connect
+icon: macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png
+keywords:
+  - Kylrix
+  - Connect
+categories:
+  - Network
+include: []
