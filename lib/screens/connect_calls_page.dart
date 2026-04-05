@@ -123,6 +123,7 @@ class _ConnectCallRoomState extends State<ConnectCallRoom> {
       }
     }
     final messages = store.messages.where((item) => item.conversationId == call.conversationId).toList(growable: false);
+    final selectedConversation = conversation;
 
     return Column(
       children: [
@@ -165,7 +166,7 @@ class _ConnectCallRoomState extends State<ConnectCallRoom> {
                 ),
               ),
               const SizedBox(height: 12),
-              if (conversation != null)
+              if (selectedConversation != null)
                 Row(
                   children: [
                     Expanded(
@@ -180,7 +181,7 @@ class _ConnectCallRoomState extends State<ConnectCallRoom> {
                         final text = controller.text.trim();
                         if (text.isEmpty) return;
                         context.read<ConnectStore>().sendMessage(
-                              conversationId: conversation.id,
+                              conversationId: selectedConversation.id,
                               content: text,
                               type: MessageType.text,
                             );

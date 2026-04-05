@@ -133,6 +133,7 @@ class _ConnectChatViewState extends State<ConnectChatView> {
                     context: context,
                     builder: (_) => const NoteSelectorDialog(),
                   ).then((result) {
+                    if (!context.mounted) return;
                     if (result is ConnectTarget) {
                       context.read<ConnectStore>().sendMessage(
                             conversationId: conversation.id,
@@ -148,6 +149,7 @@ class _ConnectChatViewState extends State<ConnectChatView> {
                     context: context,
                     builder: (_) => SecretSelectorDialog(isSelfConversation: isSelf),
                   ).then((result) {
+                    if (!context.mounted) return;
                     if (result is ConnectTarget) {
                       final type = result.type == 'totp' ? MessageType.totp : MessageType.secret;
                       context.read<ConnectStore>().sendMessage(
@@ -215,6 +217,7 @@ class _ConnectChatViewState extends State<ConnectChatView> {
                     context: context,
                     builder: (_) => const NoteSelectorDialog(),
                   ).then((result) {
+                    if (!context.mounted) return;
                     if (result is ConnectTarget) {
                       context.read<ConnectStore>().sendMessage(
                             conversationId: conversation.id,
@@ -232,6 +235,7 @@ class _ConnectChatViewState extends State<ConnectChatView> {
                     context: context,
                     builder: (_) => SecretSelectorDialog(isSelfConversation: isSelf),
                   ).then((result) {
+                    if (!context.mounted) return;
                     if (result is ConnectTarget) {
                       final type = result.type == 'totp' ? MessageType.totp : MessageType.secret;
                       context.read<ConnectStore>().sendMessage(

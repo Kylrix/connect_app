@@ -129,7 +129,7 @@ class ConnectStore extends ChangeNotifier {
       ..addAll(prefs.getStringList('connect.activity') ?? const []);
     _selectedConversationId = prefs.getString('connect.selectedConversationId');
     _selectedCallId = prefs.getString('connect.selectedCallId');
-    _tab = _enumFrom(ConnectTab.values, prefs.getString('connect.tab'), ConnectTab.home);
+    _tab = _tabFromString(prefs.getString('connect.tab'));
   }
 
   T _readObject<T>(
@@ -258,6 +258,7 @@ class ConnectStore extends ChangeNotifier {
         lastMessageAt: now.subtract(const Duration(minutes: 4)),
         unreadCount: 2,
         isEncrypted: true,
+        isPinned: false,
         settings: const {'clearedAt': {}},
         otherUserId: 'user-ava',
       ),
@@ -271,6 +272,7 @@ class ConnectStore extends ChangeNotifier {
         lastMessageAt: now.subtract(const Duration(minutes: 11)),
         unreadCount: 5,
         isEncrypted: true,
+        isPinned: false,
         settings: const {'clearedAt': {}},
       ),
     ]);
@@ -299,6 +301,7 @@ class ConnectStore extends ChangeNotifier {
         createdAt: now.subtract(const Duration(minutes: 5)),
         isEncrypted: true,
         readBy: const ['user-ava'],
+        isPinned: false,
       ),
       ConnectMessage(
         id: 'msg-3',
@@ -310,6 +313,7 @@ class ConnectStore extends ChangeNotifier {
         createdAt: now.subtract(const Duration(minutes: 11)),
         isEncrypted: false,
         readBy: const ['user-milo'],
+        isPinned: false,
       ),
     ]);
 
@@ -565,6 +569,7 @@ class ConnectStore extends ChangeNotifier {
       lastMessageAt: DateTime.now(),
       unreadCount: 0,
       isEncrypted: true,
+      isPinned: false,
       settings: const {'clearedAt': {}},
       otherUserId: profile.userId,
     );
@@ -586,6 +591,7 @@ class ConnectStore extends ChangeNotifier {
       lastMessageAt: DateTime.now(),
       unreadCount: 0,
       isEncrypted: true,
+      isPinned: false,
       settings: const {'clearedAt': {}},
     );
     _conversations.insert(0, conversation);
@@ -636,8 +642,8 @@ class ConnectStore extends ChangeNotifier {
       callerId: call.callerId,
       conversationId: call.conversationId,
       isLink: call.isLink,
-      metadata: {...call.metadata, 'status': _nameOf(status)},
-    );
+        metadata: {...call.metadata, 'status': status.name},
+      );
     _persist();
     notifyListeners();
   }
@@ -670,6 +676,13 @@ class ConnectStore extends ChangeNotifier {
 
   Future<void> reclaimGhostNotes() async {
     await api.reclaimGhostNotes(_session.userId);
+  }
+
+  ConnectTab _tabFromString(String? value) {
+    for (final tab in ConnectTab.values) {
+      if (tab.name == value) return tab;
+    }
+    return ConnectTab.home;
   }
 
   ConnectConversation? _byConversationId(String? id) {

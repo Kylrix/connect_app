@@ -101,10 +101,12 @@ class ConnectSettingsPage extends StatelessWidget {
             title: const Text('Repair permissions'),
             subtitle: const Text('Rebuild shared-item access from the connected Accounts API.'),
             onTap: () => context.read<ConnectStore>().reclaimGhostNotes().then((_) {
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Permission repair requested')),
               );
             }).catchError((_) {
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Permission repair failed')),
               );
