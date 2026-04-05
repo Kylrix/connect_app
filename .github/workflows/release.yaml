@@ -1,0 +1,223 @@
+name: Release
+
+on:
+  push:
+    branches: ["master"]
+  workflow_dispatch:
+
+env:
+  ENABLE_WORKFLOW: false
+  FORCE_BUILD: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check_changes:
+    if: env.ENABLE_WORKFLOW == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.final_check.outputs.should_build }}
+      enabled: ${{ steps.final_check.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for relevant changes
+        if: env.ENABLE_WORKFLOW == 'true'
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            android:
+              - 'android/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - 'assets/**'
+              - 'lib/**'
+            desktop:
+              - 'lib/**'
+              - 'linux/**'
+              - 'macos/**'
+              - 'windows/**'
+            shared:
+              - 'analysis_options.yaml'
+              - 'web/**'
+
+      - name: Final Decision
+        id: final_check
+        run: |
+          echo "enabled=${{ env.ENABLE_WORKFLOW }}" >> $GITHUB_OUTPUT
+          if [ "${{ env.ENABLE_WORKFLOW }}" != "true" ]; then
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          elif [ "${{ env.FORCE_BUILD }}" == "true" ]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.filter.outputs.android }}" == 'true' ] || [ "${{ steps.filter.outputs.desktop }}" == 'true' ] || [ "${{ steps.filter.outputs.shared }}" == 'true' ]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+
+  build_android:
+    needs: check_changes
+    if: needs.check_changes.outputs.enabled == 'true' && needs.check_changes.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+      - run: flutter pub get
+      - run: flutter build apk --release --no-pub
+      - name: Package APK
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/${{ github.event.repository.name }}-android.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: dist/*
+
+  build_linux:
+    needs: check_changes
+    if: needs.check_changes.outputs.enabled == 'true' && needs.check_changes.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install Linux build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+      - run: flutter pub get
+      - run: flutter build linux --release --no-pub
+      - name: Package Linux bundle
+        run: |
+          mkdir -p dist
+          tar -czf "dist/${{ github.event.repository.name }}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: dist/*
+
+  build_macos:
+    needs: check_changes
+    if: needs.check_changes.outputs.enabled == 'true' && needs.check_changes.outputs.should_build == 'true'
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ${{ github.workspace }}/.dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+      - run: flutter pub get
+      - run: flutter build macos --release --no-pub
+      - name: Package macOS app
+        run: |
+          mkdir -p dist
+          APP_PATH=$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "dist/${{ github.event.repository.name }}-macos.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: dist/*
+
+  build_windows:
+    needs: check_changes
+    if: needs.check_changes.outputs.enabled == 'true' && needs.check_changes.outputs.should_build == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\Users\runneradmin\AppData\Local\Pub\Cache
+            ${{ github.workspace }}\.dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+      - run: flutter pub get
+      - run: flutter build windows --release --no-pub
+      - name: Package Windows app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $bundle = "build/windows/x64/runner/Release"
+          $zip = "dist/${{ github.event.repository.name }}-windows.zip"
+          Compress-Archive -Path "$bundle/*" -DestinationPath $zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: dist/*
+
+  publish_release:
+    needs: [check_changes, build_android, build_linux, build_macos, build_windows]
+    if: needs.check_changes.outputs.enabled == 'true' && needs.check_changes.outputs.should_build == 'true' && !cancelled()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-release
+          path: dist/android
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-release
+          path: dist/linux
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-release
+          path: dist/macos
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: dist/windows
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: release-${{ github.run_number }}
+          files: dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

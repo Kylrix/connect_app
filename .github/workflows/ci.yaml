@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+env:
+  ENABLE_WORKFLOW: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: env.ENABLE_WORKFLOW == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            src:
+              - 'lib/**'
+              - 'test/**'
+              - 'android/**'
+              - 'ios/**'
+              - 'linux/**'
+              - 'macos/**'
+              - 'windows/**'
+              - 'web/**'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - 'analysis_options.yaml'
+
+      - uses: subosito/flutter-action@v2
+        if: steps.filter.outputs.src == 'true'
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        if: steps.filter.outputs.src == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ${{ github.workspace }}/.dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install dependencies
+        if: steps.filter.outputs.src == 'true'
+        run: flutter pub get
+
+      - name: Analyze
+        if: steps.filter.outputs.src == 'true'
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests
+        if: steps.filter.outputs.src == 'true'
+        run: flutter test --concurrency=4
